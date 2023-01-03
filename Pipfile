@@ -8,6 +8,7 @@ numpy = "*"
 pandas = "*"
 neurokit2 = "*"
 jupyter = "*"
+mne = "*"
 
 [dev-packages]
 ipykernel = "*"

@@ -15,10 +15,7 @@ class StudyInfoEncoder:
         """
         self.activities = ['Start_Sit', 'Start_Stand', 'Start_Cycle1', 'Start_Cycle2', 'Start_Run1', 'Start_Run2']
         self.encodings = { v:i for i, v in  enumerate(self.activities)}
-        self.info = pd.read_csv(
-            os.path.join(source),
-            parse_dates=list(self.encodings.keys())
-        )
+        self.info = pd.read_csv(source, parse_dates=list(self.encodings.keys()))
     
     def fit_activity_column(self, df, participant_id, 
                             timestamp_column='timestamp', 
@@ -66,13 +63,14 @@ class DatasetVersion1:
             raise ValueError('Participant ID must be between 1 and 17')
         path = os.path.join(self.path, f'P{participant_id:02d}')
         if device == 'E4' and sensor == 'EDA':
-            return self.__e4_eda(path, sensor, raw)
+            return self.__e4_eda(path, raw)
         if device == 'MUSE' and sensor == 'EEG':
-            return self.__muse_eeg(path, sensor, raw)
+            return self.__muse_eeg(path, raw)
     
     def __e4_eda(self, path, raw):
         sampling_rate = 4
-        data = pd.read_csv(os.path.join(path, 'E4', 'EDA.csv'), header=None)
+        path = os.path.abspath(os.path.join(path, "E4", "EDA.csv"))
+        data = pd.read_csv(path, header=None)
         if raw:
             return data # raw data
         start_time = datetime.datetime.fromtimestamp(float(data.iloc[0, 0]), tz=datetime.timezone.utc)
@@ -85,7 +83,8 @@ class DatasetVersion1:
         return data
     
     def __muse_eeg(self, path, raw):
-        df = pd.read_csv(os.path.join(path, "MUSE", "eeg.csv"), header=None,)
+        path = os.path.abspath(os.path.join(path, "MUSE", "eeg.csv"))
+        df = pd.read_csv(path, header=None,)
         if raw:
             return df
         # convert first column is unix epoch time to datetime
@@ -93,4 +92,6 @@ class DatasetVersion1:
             'timestamp': pd.to_datetime(df[0], unit='s', utc=True),
             'alpha': df[1], 'beta': df[2], 'delta': df[3], 'gamma': df[4], 'theta': df[5]
         })
+        # remove timezone info 
+        df['timestamp'] = df['timestamp'].dt.tz_convert(None)
         return df
