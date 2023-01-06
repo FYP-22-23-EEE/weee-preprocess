@@ -84,28 +84,24 @@ class DatasetVersion1:
         })
         return data
 
-    def earbud_acc(self, participant_id, raw=False):
+    def earbud_acc(self, participant, raw=False):
         path = os.path.abspath(os.path.join(
-            self.path, f'P{participant_id:02d}', "EARBUDS"))
+            self.path, f'P{participant:02d}', "EARBUDS"))
         left = glob.glob(os.path.join(path, "*imu-left.csv"))
         right = glob.glob(os.path.join(path, "*imu-right.csv"))
 
-        def read_one_side(path, raw):
+        def _read_one_side(path):
             df = pd.read_csv(path, low_memory=False)
             if raw:
                 return df
-            if participant_id == 1:
-                start_time = datetime.datetime.strptime(
-                    df.iloc[0, 0], '%Y-%m-%d %H:%M:%S'
-                ).replace(tzinfo=datetime.timezone.utc)
+            if participant in [1, 6]:
+                start_time = datetime.datetime.strptime(df.iloc[0, 0], '%Y-%m-%d %H:%M:%S')
+                start_time = start_time.replace(tzinfo=datetime.timezone.utc)
                 start_time_unix = start_time.timestamp() * 1000
-            else:
-                start_time_unix = float(df.iloc[0, 0])
-            df.iloc[0, 0] = 0
-            df['timestamp'] = df['timestamp'].astype(
-                float) + start_time_unix
-            df['timestamp'] = pd.to_datetime(
-                df['timestamp'], unit='ms', utc=True)
+                df.iloc[0, 0] = 0
+                df['timestamp'] = df['timestamp'].astype(float) + start_time_unix
+                
+            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms', utc=True)
             df = pd.DataFrame({
                 'timestamp': df['timestamp'],
                 'ax': df['ax'], 'ay': df['ay'], 'az': df['az'],
@@ -113,10 +109,11 @@ class DatasetVersion1:
             df['timestamp'] = df['timestamp'].dt.tz_convert(None)
             return df
         
+        left_df, right_df = None, None
         if len(left) > 0:
-            left_df = read_one_side(left[0], raw)
+            left_df = _read_one_side(left[0])
         if len(right) > 0:
-            right_df = read_one_side(right[0], raw)
+            right_df = _read_one_side(right[0])
             
         return left_df, right_df
 
