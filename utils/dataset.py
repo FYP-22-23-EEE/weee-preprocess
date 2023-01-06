@@ -21,7 +21,7 @@ class StudyInfoEncoder:
         self.info = pd.read_csv(
             source, parse_dates=list(self.encodings.keys()))
 
-    def fit_activity_column(self, df, participant_id,
+    def fit_activity_column(self, df, participant,
                             timestamp_column='timestamp',
                             activity_column='activity',
                             activity_column_index=-1):
@@ -37,7 +37,7 @@ class StudyInfoEncoder:
         Returns:
             pd.DataFrame: dataframe with the activity column
         """
-        _info = self.info[self.info['Participant'] == f"P{participant_id:02d}"]
+        _info = self.info[self.info['Participant'] == f"P{participant:02d}"]
         df.insert(activity_column_index, activity_column, np.nan)
         df[activity_column] = df[activity_column].astype('Int8')
         for activity in self.activities:
@@ -45,6 +45,23 @@ class StudyInfoEncoder:
                    activity_column] = self.encodings[activity]
         return df
 
+    def crop_from_start_time(self, df, participant, offset=datetime.timedelta(0), timestamp_col='timestamp', activity='Start_Sit'):
+        """Crops the dataframe from the start time.
+
+        Args:
+            df (_type_): _description_
+            participant (_type_): _description_
+            offset (datetime.timedelta, optional): _description_. Defaults to datetime.timedelta(0).
+            timestamp_col (str, optional): _description_. Defaults to 'timestamp'.
+            activity (str, optional): _description_. Defaults to 'Start_Sit'.
+
+        Returns:
+            pd.DataFrame: _description_
+        """
+        _info = self.info[self.info['Participant'] == f"P{participant:02d}"]
+        start_time = _info[activity].iloc[0] + offset
+        return df[df[timestamp_col] >= start_time]
+        
 
 class DatasetVersion1:
 
@@ -93,6 +110,7 @@ class DatasetVersion1:
                 'timestamp': df['timestamp'],
                 'ax': df['ax'], 'ay': df['ay'], 'az': df['az'],
             })
+            df['timestamp'] = df['timestamp'].dt.tz_convert(None)
             return df
         
         if len(left) > 0:
