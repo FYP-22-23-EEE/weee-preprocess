@@ -9,6 +9,7 @@ pandas = "*"
 neurokit2 = "*"
 jupyter = "*"
 mne = "*"
+seaborn = "*"
 
 [dev-packages]
 ipykernel = "*"
